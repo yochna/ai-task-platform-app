@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/ai_task_platform
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongo
+      - redis
+
+  worker:
+    build: ./worker
+    restart: unless-stopped
+    env_file: ./worker/.env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/ai_task_platform
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+    deploy:
+      replicas: 2
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: http://localhost:5000/api
+    ports:
+      - "3000:8080"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
