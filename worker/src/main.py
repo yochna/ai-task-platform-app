@@ -25,6 +25,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
 QUEUE_NAME = os.getenv("REDIS_QUEUE_NAME", "ai_tasks_queue")
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/ai_task_platform")
 BLOCK_TIMEOUT_SECONDS = int(os.getenv("BLOCK_TIMEOUT_SECONDS", "5"))
+HEARTBEAT_FILE = "/tmp/worker_alive"
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
 
 running = True
@@ -128,6 +129,8 @@ def main():
 
     while running:
         try:
+            with open(HEARTBEAT_FILE, "w") as f:
+                f.write(str(time.time()))
             item = r.brpop(QUEUE_NAME, timeout=BLOCK_TIMEOUT_SECONDS)
             if item is None:
                 continue  # timeout, loop back and check `running`
